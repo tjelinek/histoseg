@@ -100,9 +100,9 @@ class ModelPipeline:
     def load_pipeline(pipeline_name, with_neighborhood_model=False):
         pipeline = ModelPipeline()
         pipeline.params = pickle.load(open('saved-pipelines/' + pipeline_name + '.p', "rb"))
-        pipeline.model = load_model('/home/jelinek/recetox/saved-models/' + pipeline_name + '.h5')
+        pipeline.model = load_model('saved-models/' + pipeline_name + '.h5')
         if with_neighborhood_model:
-            pipeline.neighborhood_model = load_model('/home/jelinek/recetox/saved-models/'
+            pipeline.neighborhood_model = load_model('saved-models/'
                                                      + pipeline_name + '_neighborhood.h5')
 
         return pipeline

@@ -1,5 +1,4 @@
 from pathlib import Path
-
 import numpy as np
 
 LOG_DIR = './logs/fit/'

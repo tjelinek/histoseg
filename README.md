@@ -29,3 +29,17 @@ In *./histoseg/requirements.txt*, you can find the exported Anaconda environment
 
 Additionally, we use a docker image of ASAP that can be used to view the annotations.
 For installation, follow the instructions at https://hub.docker.com/r/vladpopovici/asap.
+
+
+
+
+
+## Usage
+
+In this part, we look how documentation works. In particular, 
+### Custom models
+
+Class *ModelPipeline* serves as a wrapper for a model; it aims to provide a unified interface for different models' architectures.
+
+#### load_pipeline(), save_pipeline()
+
