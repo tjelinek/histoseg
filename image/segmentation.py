@@ -763,13 +763,15 @@ class BasicImageSegmenter:
         clf = LogisticRegression(random_state=0).fit(Xs, ys)
         self.logistic_regression_clf = clf
 
-    def perform_segmentation(self, image_path: Path, destination: Path, step: int, use_sampling: bool = False) -> None:
+    def perform_segmentation(self, image_path: Path, destination: Path, step: int, use_sampling: bool = False,
+                             only_mask=False) -> None:
         """
         Performs segmentation of the given image with resolution 'step' and saves it to 'destination'.
         @param use_sampling: Use sampling to speed up segmentation speed by estimating region homogenity
         @param image_path: Path to the image.
         @param destination: Where to save the image.
         @param step: The step of the segmenter. The lower, the finer the resolution, but the slower the algorithm.
+        @param only_mask: Indicates if only the segmentation overlay should be saved.
         """
 
         image = pyvips.Image.new_from_file(str(image_path))
@@ -779,5 +781,7 @@ class BasicImageSegmenter:
         else:
             segmentation_algorithm = self.build_small_image_segmentation_algorithm(image_path, step,
                                                                                    self.neighborhood_size)
-
-        segmentation_algorithm.segmented_image_to_file(destination)
+        if not only_mask:
+            segmentation_algorithm.segmented_image_to_file(destination)
+        else:
+            segmentation_algorithm.mask_to_file(destination)

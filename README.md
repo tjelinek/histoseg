@@ -23,11 +23,14 @@ separate .zip file attached to the thesis.
  
  *./expert_evaluations/* contains the original expert's evaluation (in Czech) we use in the thesis.
 ## Installation
-In *./histoseg/requirements.txt*, you can find the exported Anaconda environment file containing a list of packages for installation of the virtual environment. The environment can be created using 
+The project uses Anaconda. To create a new virtual environment,
+use the following command.
 
-*conda create --name <env> --file <requirements file>*
+*conda env create -f histoseg/environment.yml*
 
-Additionally, we use a docker image of ASAP that can be used to view the annotations.
+The name of the new environment will be *'histoseg'*.
+
+Additionally, a docker image of ASAP can be used to view the annotations.
 For installation, follow the instructions at https://hub.docker.com/r/vladpopovici/asap.
 
 
@@ -36,7 +39,9 @@ For installation, follow the instructions at https://hub.docker.com/r/vladpopovi
 
 ## Usage
 
-In this part, we look how documentation works. In particular, 
+For a better understanding, please look at an example notebook 
+*histoseg/notebooks/Example.ipynb*
+
 ### Custom models
 
 Class *ModelPipeline* serves as a wrapper for a model; it aims to provide a unified interface for different models' architectures.

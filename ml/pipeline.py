@@ -107,7 +107,7 @@ class ModelPipeline:
 
         return pipeline
 
-    def execute_pipeline(self, perform_validation=True, save_model=True, perform_test_segmentation=True):
+    def execute_pipeline(self, perform_validation=True, save_model=True, perform_test_segmentation=False):
 
         data_train = self.get_data_loader_training()
         data_valid = self.get_data_loader_validation()
@@ -140,7 +140,7 @@ class ModelPipeline:
                                    class_to_color_mapping=self.params.class_to_color_mapping,
                                    neighborhood_size=1)
 
-    def perform_segmentation(self, img_path=None, step=32):
+    def perform_segmentation(self, img_path=None, step=32, only_mask=False):
         base_dir = Path('segmentations/' + self.params.name)
         base_dir.mkdir(parents=True, exist_ok=True)
 
@@ -158,7 +158,7 @@ class ModelPipeline:
 
             image_path = images_list[i]
             destination_path = base_dir / image_path.name
-            segmenter.perform_segmentation(image_path, destination_path, step)
+            segmenter.perform_segmentation(image_path, destination_path, step, only_mask=only_mask)
 
     def _update_static_information(self):
         pass
