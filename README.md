@@ -4,9 +4,6 @@
 This project contains an implementation of a framework for multi-class histopathology image segmentation written in Python 3.8. The deep learning backbone uses Tensorflow/Keras. We use Conda for managing the packages.
 
 
-
-
-
 ## Important directories and files
 
 *./segmentations/* is a stub; Because of the size of the images, we only 
@@ -34,17 +31,11 @@ Additionally, a docker image of ASAP can be used to view the annotations.
 For installation, follow the instructions at https://hub.docker.com/r/vladpopovici/asap.
 
 
-
-
-
 ## Usage
 
-For a better understanding, please look at an example notebook 
+The basic useage is described in
 *histoseg/notebooks/Example.ipynb*
 
-### Custom models
+For additional questions, contact me at tjelinek@mail.muni.cz
 
-Class *ModelPipeline* serves as a wrapper for a model; it aims to provide a unified interface for different models' architectures.
-
-#### load_pipeline(), save_pipeline()
 

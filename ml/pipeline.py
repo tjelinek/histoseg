@@ -140,7 +140,7 @@ class ModelPipeline:
                                    class_to_color_mapping=self.params.class_to_color_mapping,
                                    neighborhood_size=1)
 
-    def perform_segmentation(self, img_path=None, step=32, only_mask=False):
+    def perform_segmentation(self, img_path=None, step=32, segmentation_path=None, only_mask=False):
         base_dir = Path('segmentations/' + self.params.name)
         base_dir.mkdir(parents=True, exist_ok=True)
 
@@ -157,8 +157,9 @@ class ModelPipeline:
             print('Segmenting file ' + str(i + 1) + ' out of ' + str(len(images_list)))
 
             image_path = images_list[i]
-            destination_path = base_dir / image_path.name
-            segmenter.perform_segmentation(image_path, destination_path, step, only_mask=only_mask)
+            if segmentation_path is None:
+                segmentation_path = base_dir / image_path.name
+            segmenter.perform_segmentation(image_path, segmentation_path, step, only_mask=only_mask)
 
     def _update_static_information(self):
         pass
