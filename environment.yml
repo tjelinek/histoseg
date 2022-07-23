@@ -1,4 +1,4 @@
-name: histosegtest
+name: histoseg
 channels:
   - conda-forge
   - defaults
@@ -223,6 +223,7 @@ dependencies:
   - python=3.8.13=h582c2e5_0_cpython
   - python-dateutil=2.8.2=pyhd8ed1ab_0
   - python-fastjsonschema=2.15.3=pyhd8ed1ab_0
+  - python-spams=2.6.1=py38h55324e4_1204
   - python_abi=3.8=2_cp38
   - pyvips=2.2.0=py38h036b735_0
   - pywavelets=1.3.0=py38h71d37f0_1

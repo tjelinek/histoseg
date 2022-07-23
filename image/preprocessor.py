@@ -8,6 +8,7 @@ import numpy as np
 from PIL import Image
 from multipledispatch import dispatch
 
+
 import staintools2
 from staintools2 import read_image
 

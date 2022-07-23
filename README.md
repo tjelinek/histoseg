@@ -36,6 +36,9 @@ For installation, follow the instructions at https://hub.docker.com/r/vladpopovi
 The basic useage is described in
 *histoseg/notebooks/Example.ipynb*
 
+The data preparation procedure is described in
+*histoseg/notebooks/DataExample.ipynb*
+
 For additional questions, contact me at tjelinek@mail.muni.cz
 
 
