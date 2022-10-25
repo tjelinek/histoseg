@@ -14,7 +14,7 @@ from keras_preprocessing.image import ImageDataGenerator
 from sklearn.linear_model import LogisticRegression
 
 from cfg import format_to_dtype, dtype_to_format
-from image.image_utils import Margins
+from image.image_utils import Margins, crop_region_pyvips
 from util.data_manipulation_scripts import load_polygons_from_asap_annotation, generate_image_annotation_pairs
 from util.math_utils import is_point_inside_polygon, neighbourhood_to_vector, Interval2D, \
     sample_from_interval_2d
@@ -431,32 +431,6 @@ class LargeSlideSegmentationAlgorithm(SegmentationAlgorithm):
 
         self.processed = True
 
-    def _crop_region(self, x: int, y: int, region_size_x: int, tile_size_y: int,
-                     margins: Margins = (0, 0, 0, 0)) -> np.ndarray:
-        """
-        Crops region out of self. image_vips
-
-        @param x: Region x start
-        @param y: Region y end
-        @param region_size_x: Region width
-        @param tile_size_y: Region height
-        @param margins: Size of margins that will be at each side of the cropped region.
-        @return: Cropped region as a numpy ndarray.
-        """
-        x0 = max(x - margins[0], 0)
-        y0 = max(y - margins[2], 0)
-        width_gross = region_size_x + margins[0] + margins[1]
-        height_gross = tile_size_y + margins[2] + margins[3]
-
-        width = min(width_gross, self.width - x0)
-        height = min(height_gross, self.height - y0)
-
-        cropped_region = self.image_vips.crop(x0, y0, width, height)
-        cropped_region_numpy = np.ndarray(buffer=cropped_region.write_to_memory(),
-                                          dtype=format_to_dtype[cropped_region.format],
-                                          shape=[cropped_region.height, cropped_region.width, cropped_region.bands])
-        return cropped_region_numpy
-
     def __build_small_slide_segmenter(self, region_numpy: np.ndarray, margins: Margins) \
             -> SmallSlideSegmentationAlgorithm:
         return SmallSlideSegmentationAlgorithm(region_numpy, self.model, self.datagen_segmentation,
@@ -538,7 +512,7 @@ class LargeSlideSegmentationAlgorithm(SegmentationAlgorithm):
             region_grid_max_x = min(self.grid_size_x, region_grid_max_x + 1)
             region_grid_max_y = min(self.grid_size_y, region_grid_max_y + 1)
 
-            region_numpy = self._crop_region(region_min_x, region_min_y, region_width, region_height)
+            region_numpy = crop_region_pyvips(self.image_vips, region_min_x, region_min_y, region_width, region_height)
 
             mask_numpy = np.zeros(region_numpy.shape, dtype='uint8')
 

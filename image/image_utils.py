@@ -8,9 +8,11 @@ import random
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
+from cfg import format_to_dtype
 from util.data_manipulation_scripts import get_files_per_class
 
 Margins = namedtuple("Margins", "left right up down")
+
 
 def generate_example_of_classes(dataset: Path, image_destination: Path, example_size: int, examples_per_class: int = 4,
                                 selected_classes: Set[str] = None,
@@ -111,7 +113,6 @@ def get_classes_intensities_statistics(path_to_dataset: Path) -> None:
 
 
 def split_image(tiles_count, img: np.ndarray):
-
     tile_size_x: int = img.shape[0] // tiles_count
     tile_size_y: int = img.shape[1] // tiles_count
 
@@ -122,3 +123,31 @@ def split_image(tiles_count, img: np.ndarray):
         tiles.append(tile)
 
     return tiles
+
+
+def crop_region_pyvips(image_vips, x: int, y: int, region_size_x: int, tile_size_y: int,
+                       margins: Margins = (0, 0, 0, 0)) -> np.ndarray:
+    """
+    Crops region out of image_vips
+
+    @param image_vips: pyvips Image
+    @param x: Region x start
+    @param y: Region y end
+    @param region_size_x: Region width
+    @param tile_size_y: Region height
+    @param margins: Size of margins that will be at each side of the cropped region.
+    @return: Cropped region as a numpy ndarray.
+    """
+    x0 = max(x - margins[0], 0)
+    y0 = max(y - margins[2], 0)
+    width_gross = region_size_x + margins[0] + margins[1]
+    height_gross = tile_size_y + margins[2] + margins[3]
+
+    width = min(width_gross, image_vips.width - x0)
+    height = min(height_gross, image_vips.height - y0)
+
+    cropped_region = image_vips.image_vips.crop(x0, y0, width, height)
+    cropped_region_numpy = np.ndarray(buffer=cropped_region.write_to_memory(),
+                                      dtype=format_to_dtype[cropped_region.format],
+                                      shape=[cropped_region.height, cropped_region.width, cropped_region.bands])
+    return cropped_region_numpy
