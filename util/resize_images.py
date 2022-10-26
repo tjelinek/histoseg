@@ -1,12 +1,12 @@
-from pathlib import Path
 import os
+from pathlib import Path
+
 import pyvips
 
 print(os.getcwd())
 destination_folder = Path('/home/tomas/Projects/histoseg/data/Feit_colon-annotation')
 
 os.chdir(destination_folder)
-
 
 FACTOR = 2
 
