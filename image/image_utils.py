@@ -125,7 +125,7 @@ def split_image(tiles_count, img: np.ndarray):
     return tiles
 
 
-def crop_region_pyvips(image_vips, x: int, y: int, region_size_x: int, tile_size_y: int,
+def crop_region_pyvips(image_vips, x: int, y: int, region_size_x: int, region_size_y: int,
                        margins: Margins = (0, 0, 0, 0)) -> np.ndarray:
     """
     Crops region out of image_vips
@@ -134,19 +134,19 @@ def crop_region_pyvips(image_vips, x: int, y: int, region_size_x: int, tile_size
     @param x: Region x start
     @param y: Region y end
     @param region_size_x: Region width
-    @param tile_size_y: Region height
+    @param region_size_y: Region height
     @param margins: Size of margins that will be at each side of the cropped region.
     @return: Cropped region as a numpy ndarray.
     """
     x0 = max(x - margins[0], 0)
     y0 = max(y - margins[2], 0)
     width_gross = region_size_x + margins[0] + margins[1]
-    height_gross = tile_size_y + margins[2] + margins[3]
+    height_gross = region_size_y + margins[2] + margins[3]
 
     width = min(width_gross, image_vips.width - x0)
     height = min(height_gross, image_vips.height - y0)
 
-    cropped_region = image_vips.image_vips.crop(x0, y0, width, height)
+    cropped_region = image_vips.crop(x0, y0, width, height)
     cropped_region_numpy = np.ndarray(buffer=cropped_region.write_to_memory(),
                                       dtype=format_to_dtype[cropped_region.format],
                                       shape=[cropped_region.height, cropped_region.width, cropped_region.bands])
