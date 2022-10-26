@@ -4,7 +4,7 @@ import os
 import random
 import shutil
 from pathlib import Path
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Sequence
 from xml.dom import minidom
 from typing import Dict, List, Set
 from itertools import accumulate, product
@@ -14,6 +14,7 @@ import PIL
 import pyvips
 import numpy as np
 from PIL import Image
+from attr import dataclass
 
 from cfg import format_to_dtype, mapping_classes_feit, selected_classes_feit
 from util.math_utils import list_tiles_in_polygon, is_point_inside_polygon
@@ -196,15 +197,14 @@ def generate_dataset_from_annotated_slides(dataset_path_source: Path, tiles_dest
         annotation = annotations[i]
 
         print("Processing " + str(tiff) + ", file " + str(i + 1) + " out of " + str(len(annotations)))
-        extract_tiles_from_tiff(tiff, annotation, tiles_destination, tile_size, scale, neighborhood, fraction)
+        export_tiles_from_tiff(tiff, annotation, tiles_destination, tile_size, scale, neighborhood, fraction)
 
 
-def crop_tiles_from_neighborhood(image: pyvips.Image, x: int, y: int, tile_size: int, neighborhood: int,
-                                 destination_path: Path, fraction: float) -> Image:
+def crop_tile_neighborhood(image: pyvips.Image, x: int, y: int, tile_size: int, neighborhood: int,
+                           fraction: float) -> Image:
     """
 
     @param fraction: Fraction of tiles to save
-    @param destination_path: Path to the destination, including the tile name
     @param image: pyvips image
     @param neighborhood: Number of tiles that will be taken from each side as a neighborhood. If they cannot be
                          extracted as they are out of the image boundaries, white tile is used.
@@ -253,22 +253,34 @@ def crop_tiles_from_neighborhood(image: pyvips.Image, x: int, y: int, tile_size:
 
         canvas.paste(cropped_image_pil, (margin_left_local + margin_left_global, margin_up_local + margin_up_global))
 
-    canvas.save(destination_path)
+    return canvas
 
 
-def extract_tiles_from_tiff(tiff: Path, annotation: Path, tile_destination: Path, tile_size: int, scale: int,
-                            neighborhood: int = 0, fraction: float = 1.0) -> None:
+@dataclass
+class ExtractedTile:
+    x_0: int
+    y_0: int
+    x_1: int
+    y_1: int
+    tile_image: PIL.Image
+    tile_class: str
+    tile_idx: int
+
+
+def extract_tiles_from_tiff(tiff: Path, annotation: Path, tile_size: int, scale: int, neighborhood: int = 0,
+                            fraction: float = 1.0, bounds=None) -> Sequence[ExtractedTile]:
     """
-    Extracts tiles from tiff from inside of the polygons specified by the annotation file.
+    Extracts tiles from tiff from inside the polygons specified by the annotation file and outputs the tile as
+    a numpy nd array, and the tile location.
 
     @param fraction: Fraction of tiles to save
     @param neighborhood: Number of tiles that will be taken from each side as a neighborhood. If they cannot be
                          extracted as they are out of the image boundaries, white tile is used.
     @param tiff: Path to tiff image
     @param annotation: Path to the annotation that can be processed using 'load_polygons_from_asap_annotation
-    @param tile_destination: Folder where the extracted tiles shall be saved
     @param tile_size: Size of tile in pixels
     @param scale: Scale in which the tiff shall be loaded
+    @param bounds: Quadruple (min_x, max_x, min_y, max_y) of coordinates from which the tiles should be extracted.
     """
     img = pyvips.Image.tiffload(str(tiff), page=scale)
     polygons = load_polygons_from_asap_annotation(annotation)
@@ -283,28 +295,76 @@ def extract_tiles_from_tiff(tiff: Path, annotation: Path, tile_destination: Path
         else:
             continue
 
-        class_subfolder = tile_destination / Path(polygon_class_name_mapped)
-        class_subfolder.mkdir(parents=True, exist_ok=True)
-
         for polygon in polygons[polygon_class]:
             print('\r--Processing polygon ' + str(polygon_idx + 1) + ' out of ' + str(num_polygons), end='')
             polygon_idx += 1
             if polygon_idx >= num_polygons:
                 print('\n')
 
-            for x_1, y_1 in list_tiles_in_polygon(polygon, tile_size):
-                x_1 //= 2 ** scale
-                y_1 //= 2 ** scale
+            # We are only interested in regions that can generate tiles within bounds
+            if bounds is not None:
+                min_x, max_x, min_y, max_y = bounds
 
-                if x_1 + tile_size >= img.width or y_1 + tile_size >= img.height or x_1 < 0 or y_1 < 0:
-                    continue  # Skip invalid coordinates
+                pol_min_x: int = min([p[0] for p in polygon])
+                pol_min_y: int = min([p[1] for p in polygon])
+                pol_max_x: int = max([p[0] for p in polygon])
+                pol_max_y: int = max([p[1] for p in polygon])
 
-                tile_name = Path(annotation.stem + '_' + polygon_class_name_mapped + '_' + str(tile_idx) + '.png')
-                complete_destination_path = class_subfolder / tile_name
+                if pol_min_y < min_y and pol_max_y > max_y and pol_min_x < min_x and pol_max_x > max_x:
+                    continue
 
-                crop_tiles_from_neighborhood(img, x_1, y_1, tile_size, neighborhood, complete_destination_path, fraction)
+            for x_0, y_0 in list_tiles_in_polygon(polygon, tile_size):
+                x_0 //= 2 ** scale
+                y_0 //= 2 ** scale
+
+                x_1 = x_0 + tile_size
+                y_1 = y_0 + tile_size
+
+                # Throw away tiles that are not within bounds
+                if bounds is not None:
+                    min_x, max_x, min_y, max_y = bounds
+
+                    if x_0 < min_x or x_1 > max_x or y_0 < min_y or y_1 > max_y:
+                        continue
+
+                # Skip invalid coordinates
+                if x_1 >= img.width or y_1 >= img.height or x_0 < 0 or y_0 < 0:
+                    continue
+
+                image_pil = crop_tile_neighborhood(img, x_0, y_0, tile_size, neighborhood, fraction)
+
+                tile_dataclass = ExtractedTile(x_0=x_0, x_1=x_1, y_0=y_0, y_1=y_1, tile_image=image_pil,
+                                               tile_class=polygon_class_name_mapped, tile_idx=tile_idx)
 
                 tile_idx += 1
+
+                yield tile_dataclass
+
+
+def export_tiles_from_tiff(tiff: Path, annotation: Path, tile_destination: Path, tile_size: int, scale: int,
+                           neighborhood: int = 0, fraction: float = 1.0) -> None:
+    """
+    Extracts tiles from tiff from inside the polygons specified by the annotation file to folder.
+
+    @param fraction: Fraction of tiles to save
+    @param neighborhood: Number of tiles that will be taken from each side as a neighborhood. If they cannot be
+                         extracted as they are out of the image boundaries, white tile is used.
+    @param tiff: Path to tiff image
+    @param annotation: Path to the annotation that can be processed using 'load_polygons_from_asap_annotation
+    @param tile_destination: Folder where the extracted tiles shall be saved
+    @param tile_size: Size of tile in pixels
+    @param scale: Scale in which the tiff shall be loaded
+    """
+
+    for tile in extract_tiles_from_tiff(tiff, annotation, tile_size, scale, neighborhood, fraction):
+        tile_name = Path(annotation.stem + '_' + tile.tile_class + '_' + str(tile.tile_idx) + '.png')
+
+        class_subfolder = tile_destination / Path(tile.tile_class)
+        class_subfolder.mkdir(parents=True, exist_ok=True)
+
+        complete_destination_path = class_subfolder / tile_name
+
+        tile.tile_image.save(complete_destination_path)
 
 
 def precompute_annotation_map(data_validation: Path, resolution: int = 32) -> None:
@@ -341,8 +401,8 @@ def precompute_annotation_map(data_validation: Path, resolution: int = 32) -> No
 
             if (grid_point_y % 10 == 0) \
                     or (grid_point_x + 1 >= map_width and grid_point_y >= map_height):
-                print('\rProcessing location ' + str(grid_point_x) + '/' + str(map_width-1) + ', '
-                                               + str(grid_point_y) + '/' + str(map_height-1), end='')
+                print('\rProcessing location ' + str(grid_point_x) + '/' + str(map_width - 1) + ', '
+                      + str(grid_point_y) + '/' + str(map_height - 1), end='')
 
             pixel_x = grid_point_x * resolution
             pixel_y = grid_point_y * resolution
